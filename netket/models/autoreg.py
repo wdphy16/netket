@@ -57,6 +57,14 @@ class AbstractARNN(nn.Module):
         if self.hilbert.constrained:
             raise ValueError("Only unconstrained Hilbert spaces are supported by ARNN.")
 
+    @property
+    def _use_naive_scan(self) -> bool:
+        """
+        Use a naive version of `jax.lax.scan` in `ARDirectSampler`.
+        It should be True if `_conditional` is not compatible with the jitted `scan`.
+        """
+        return False
+
     @abc.abstractmethod
     def conditionals_log_psi(self, inputs: Array) -> Array:
         """

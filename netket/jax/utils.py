@@ -367,3 +367,15 @@ class PRNGSeq:
         keys = jax.random.split(self._current, num=num + 1)
         self._current = keys[-1]
         return keys[:-1]
+
+
+def naive_scan(f, init, xs):
+    """
+    A naive version of `jax.lax.scan`, without jitting `f`.
+    """
+    carry = init
+    ys = []
+    for x in xs:
+        carry, y = f(carry, x)
+        ys.append(y)
+    return carry, jnp.stack(ys)

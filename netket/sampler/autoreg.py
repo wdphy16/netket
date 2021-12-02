@@ -17,6 +17,7 @@ from functools import partial
 import jax
 from jax import numpy as jnp
 
+from netket.jax.utils import naive_scan
 from netket.sampler import Sampler, SamplerState
 from netket.utils import struct
 from netket.utils.deprecation import warn_deprecation
@@ -162,7 +163,10 @@ class ARDirectSampler(Sampler):
 
         indices = jnp.arange(sampler.hilbert.size)
         indices = model.apply(variables, indices, method=model.reorder)
-        (σ, _, _), _ = jax.lax.scan(scan_fun, (σ, cache, key_scan), indices)
+        if model._use_naive_scan:
+            (σ, _, _), _ = naive_scan(scan_fun, (σ, cache, key_scan), indices)
+        else:
+            (σ, _, _), _ = jax.lax.scan(scan_fun, (σ, cache, key_scan), indices)
         σ = σ.reshape((chain_length, sampler.n_chains_per_rank, sampler.hilbert.size))
 
         new_state = state.replace(key=new_key)
