@@ -155,7 +155,10 @@ class ARDirectSampler(Sampler):
 
         indices = jnp.arange(sampler.hilbert.size)
         indices = model.apply(variables, indices, method=model.reorder)
-        (σ, _, _), _ = jax.lax.scan(scan_fun, (σ, cache, key_scan), indices)
+        if model._use_naive_scan:
+            (σ, _, _), _ = nkjax.naive_scan(scan_fun, (σ, cache, key_scan), indices)
+        else:
+            (σ, _, _), _ = jax.lax.scan(scan_fun, (σ, cache, key_scan), indices)
         σ = σ.reshape((sampler.n_batches, chain_length, sampler.hilbert.size))
 
         new_state = state.replace(key=new_key)
