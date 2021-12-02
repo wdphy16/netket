@@ -51,7 +51,7 @@ from ._vjp import vjp
 from ._grad import grad, value_and_grad
 
 from ._chunk_utils import chunk, unchunk
-from ._scanmap import scan_reduce, scan_append, scan_append_reduce, scanmap
+from ._scanmap import scan_reduce, scan_append, scan_append_reduce, scanmap, naive_scan
 from ._vjp_chunked import vjp_chunked
 from ._vmap_chunked import apply_chunked, vmap_chunked
 
