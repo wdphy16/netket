@@ -130,3 +130,15 @@ def scanmap(fun, scan_fun, argnums=0):
         return scan_fun(lambda x: f_partial.call_wrapped(*x), dyn_args)
 
     return f_
+
+
+def naive_scan(f, init, xs):
+    """
+    A naive version of `jax.lax.scan`, without jitting `f`.
+    """
+    carry = init
+    ys = []
+    for x in xs:
+        carry, y = f(carry, x)
+        ys.append(y)
+    return carry, jnp.stack(ys)

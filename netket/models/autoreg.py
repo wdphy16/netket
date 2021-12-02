@@ -62,6 +62,14 @@ class AbstractARNN(nn.Module):
                 f"by ARNN, but hilbert is a {type(self.hilbert)}."
             )
 
+    @property
+    def _use_naive_scan(self) -> bool:
+        """
+        Use a naive version of `jax.lax.scan` in `ARDirectSampler`.
+        It should be True if `_conditional` is not compatible with the jitted `scan`.
+        """
+        return False
+
     @abc.abstractmethod
     def conditionals_log_psi(self, inputs: Array) -> Array:
         """
