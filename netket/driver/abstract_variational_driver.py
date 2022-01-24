@@ -61,6 +61,8 @@ class AbstractVariationalDriver(abc.ABC):
         self._mpi_nodes = mpi.n_nodes
         self._loss_stats = None
         self._loss_name = minimized_quantity_name
+        self._loss_grad = None
+        self._updates = None
         self._step_count = 0
 
         self._variational_state = variational_state
@@ -76,8 +78,7 @@ class AbstractVariationalDriver(abc.ABC):
             the update for the weights.
         """
         self._forward()
-        dp = self._backward()
-        return dp
+        self._backward()
 
     def _forward(self):
         """
@@ -113,7 +114,6 @@ class AbstractVariationalDriver(abc.ABC):
         """
         self.state.reset()
         self._step_count = 0
-        pass
 
     @abc.abstractmethod
     def info(self, depth=0):
@@ -165,12 +165,12 @@ class AbstractVariationalDriver(abc.ABC):
         """
         for _ in range(0, n_steps, step):
             for i in range(0, step):
-                dp = self._forward_and_backward()
+                self._forward_and_backward()
                 if i == 0:
                     yield self.step_count
 
                 self._step_count += 1
-                self.update_parameters(dp)
+                self.update_parameters()
 
     def advance(self, steps: int = 1):
         """
@@ -304,15 +304,15 @@ class AbstractVariationalDriver(abc.ABC):
         """
         return tree_map(self._estimate_stats, observables)
 
-    def update_parameters(self, dp):
+    def update_parameters(self):
         """
         Updates the parameters of the machine using the optimizer in this driver
-
-        Args:
-            dp: the pytree containing the updates to the parameters
         """
         self._optimizer_state, self.state.parameters = apply_gradient(
-            self._optimizer.update, self._optimizer_state, dp, self.state.parameters
+            self._optimizer.update,
+            self._optimizer_state,
+            self._updates,
+            self.state.parameters,
         )
 
     def _log_additional_data(self, log_dict, step):

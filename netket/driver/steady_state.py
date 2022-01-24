@@ -71,7 +71,6 @@ class SteadyState(AbstractVariationalDriver):
 
         self.preconditioner = preconditioner
 
-        self._dp = None
         self._S = None
         self._sr_info = None
 
@@ -89,17 +88,17 @@ class SteadyState(AbstractVariationalDriver):
         self._loss_stats, self._loss_grad = self.state.expect_and_grad(self._ldag_l)
 
         # if it's the identity it does
-        # self._dp = self._loss_grad
-        self._dp = self.preconditioner(self.state, self._loss_grad, self.step_count)
-
-        # If parameters are real, then take only real part of the gradient (if it's complex)
-        self._dp = jax.tree_map(
-            lambda x, target: (x if jnp.iscomplexobj(target) else x.real),
-            self._dp,
-            self.state.parameters,
+        # self._updates = self._loss_grad
+        self._updates = self.preconditioner(
+            self.state, self._loss_grad, self.step_count
         )
 
-        return self._dp
+        # If parameters are real, then take only real part of the gradient (if it's complex)
+        self._updates = jax.tree_map(
+            lambda x, target: (x if jnp.iscomplexobj(target) else x.real),
+            self._updates,
+            self.state.parameters,
+        )
 
     @property
     def preconditioner(self):
