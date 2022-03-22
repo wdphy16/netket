@@ -25,9 +25,11 @@ from netket import jax as nkjax
 from netket.jax import sharding
 from netket import config
 from netket.hilbert import AbstractHilbert
-from netket.utils import get_afun_if_module, struct, wrap_afun
+from netket.utils import get_afun_if_module, numbers, struct, wrap_afun
 from netket.utils.types import PyTree, DType, SeedT
 from netket.jax import HashablePartial
+
+SymmetrizeFunT = Callable[[Array, PRNGKeyT], Array]
 
 
 class SamplerState(struct.Pytree):
@@ -63,12 +65,18 @@ class Sampler(struct.Pytree):
     dtype: DType = struct.field(pytree_node=False, default=float)
     """The dtype of the states sampled."""
 
+    symmetrize_fun: Optional[SymmetrizeFunT] = struct.field(
+        pytree_node=False, default=None
+    )
+    """The function to symmetrize a batch of spins."""
+
     def __init__(
         self,
         hilbert: AbstractHilbert,
         *,
         machine_pow: float = 2,
         dtype: DType = float,
+        symmetrize_fun: Optional[SymmetrizeFunT] = None,
     ):
         """
         Construct a Monte Carlo sampler.
@@ -77,6 +85,7 @@ class Sampler(struct.Pytree):
             hilbert: The Hilbert space to sample.
             machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
             dtype: The dtype of the states sampled (default = np.float64).
+            symmetrize_fun: The function to symmetrize a batch of spins (default = None).
         """
         # Raise errors if hilbert is not an Hilbert
         if not isinstance(hilbert, AbstractHilbert):
@@ -109,6 +118,7 @@ class Sampler(struct.Pytree):
         self.hilbert = hilbert
         self.machine_pow = machine_pow
         self.dtype = dtype
+        self.symmetrize_fun = symmetrize_fun
 
     @property
     def n_chains_per_rank(self) -> int:
