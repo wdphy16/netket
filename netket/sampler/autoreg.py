@@ -144,7 +144,7 @@ class ARDirectSampler(Sampler):
 
             return (σ, cache, new_key), None
 
-        new_key, key_init, key_scan = jax.random.split(state.key, 3)
+        new_key, key_init, key_scan, key_sym = jax.random.split(state.key, 4)
 
         # Initialize a buffer for `σ` before generating a batch of samples
         # The result should not depend on its initial content
@@ -167,6 +167,10 @@ class ARDirectSampler(Sampler):
             (σ, _, _), _ = naive_scan(scan_fun, (σ, cache, key_scan), indices)
         else:
             (σ, _, _), _ = jax.lax.scan(scan_fun, (σ, cache, key_scan), indices)
+
+        if sampler.symmetrize_fun is not None:
+            σ = sampler.symmetrize_fun(σ, key_sym)
+
         σ = σ.reshape((chain_length, sampler.n_chains_per_rank, sampler.hilbert.size))
 
         new_state = state.replace(key=new_key)

@@ -23,9 +23,11 @@ from netket import jax as nkjax
 from netket.hilbert import AbstractHilbert
 from netket.utils import mpi, get_afun_if_module, wrap_afun
 from netket.utils.deprecation import deprecated
-from netket.utils.types import PyTree, DType, SeedT
+from netket.utils.types import Array, DType, PRNGKeyT, PyTree, SeedT
 from netket.jax import HashablePartial
 from netket.utils import struct, numbers
+
+SymmetrizeFunT = Callable[[Array, PRNGKeyT], Array]
 
 fancy = []
 
@@ -69,6 +71,9 @@ class Sampler(abc.ABC):
 
     dtype: DType = struct.field(pytree_node=False, default=np.float64)
     """The dtype of the states sampled."""
+
+    symmetrize_fun: SymmetrizeFunT = struct.field(pytree_node=False, default=None)
+    """The function to symmetrize a batch of spins."""
 
     def __pre_init__(
         self, hilbert: AbstractHilbert, n_chains: Optional[int] = None, **kwargs
