@@ -79,6 +79,12 @@ class SolverFlags(IntFlag):
         return ", ".join(msg[flag] for flag in msg.keys() if flag & self != 0)
 
 
+def _cond(pred, true_func, false_func, args):
+    return jax.tree_util.tree_map(
+        lambda x, y: pred * x + (1 - pred) * y, true_func(args), false_func(args)
+    )
+
+
 def set_flag_jax(condition, flags, flag):
     """
     If `condition` is true, `flags` is updated by setting `flag` to 1.
@@ -86,12 +92,7 @@ def set_flag_jax(condition, flags, flag):
         if condition:
             flags |= flag
     """
-    return jax.lax.cond(
-        condition,
-        lambda x: x | flag,
-        lambda x: x,
-        flags,
-    )
+    return _cond(condition, lambda x: x | flag, lambda x: x, flags)
 
 
 def euclidean_norm(x: PyTree | Array):
@@ -249,7 +250,7 @@ def general_time_step_adaptive(
     # accept the time step iff it is accepted by all MPI processes
     accept_step, _ = mpi_all_jax(accept_step)
 
-    return jax.lax.cond(
+    return _cond(
         accept_step,
         # step accepted
         lambda _: rk_state.replace(
@@ -257,11 +258,8 @@ def general_time_step_adaptive(
             step_no_total=rk_state.step_no_total + 1,
             y=y_tp1,
             t=rk_state.t + actual_dt,
-            dt=jax.lax.cond(
-                actual_dt == rk_state.dt,
-                lambda _: next_dt,
-                lambda _: rk_state.dt,
-                None,
+            dt=_cond(
+                actual_dt == rk_state.dt, lambda _: next_dt, lambda _: rk_state.dt, None
             ),
             last_norm=norm_y,
             last_scaled_error=scaled_err,
