@@ -24,6 +24,7 @@ operators["Ising 1D Jax"] = nk.operator.IsingJax(hi, g, h=1.321)
 g = nk.graph.Hypercube(length=10, n_dim=1, pbc=True)
 hi = nk.hilbert.Spin(s=0.5, total_sz=0, N=g.n_nodes)
 operators["Heisenberg 1D"] = nk.operator.Heisenberg(hilbert=hi, graph=g)
+operators["Heisenberg 1D Jax"] = nk.operator.HeisenbergJax(hilbert=hi, graph=g)
 
 # Bose Hubbard
 g = nk.graph.Hypercube(length=3, n_dim=2, pbc=True)
@@ -75,6 +76,9 @@ operators["Graph Hamiltonian (colored edges)"] = nk.operator.GraphOperator(
 
 # Heisenberg with colored edges
 operators["Heisenberg (colored edges)"] = nk.operator.Heisenberg(
+    hi, g, J=[1, 2], sign_rule=[True, False]
+)
+operators["Heisenberg (colored edges) Jax"] = nk.operator.HeisenbergJax(
     hi, g, J=[1, 2], sign_rule=[True, False]
 )
 
