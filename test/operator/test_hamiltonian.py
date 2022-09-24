@@ -111,6 +111,24 @@ def _colored_graph(graph):
         ),
         pytest.param(
             (
+                lambda hi, g: nk.operator.Heisenberg(hi, g),
+                lambda hi, g: nk.operator.HeisenbergJax(hi, g),
+            ),
+            id="heisenberg",
+        ),
+        pytest.param(
+            (
+                lambda hi, g: nk.operator.Heisenberg(
+                    hi, _colored_graph(g), J=[1, 2], sign_rule=[True, False]
+                ),
+                lambda hi, g: nk.operator.HeisenbergJax(
+                    hi, _colored_graph(g), J=[1, 2], sign_rule=[True, False]
+                ),
+            ),
+            id="heisenberg_colored",
+        ),
+        pytest.param(
+            (
                 lambda hi, g: nk.operator.PauliStrings(
                     hi,
                     [s + "I" * (g.n_nodes - len(s)) for s in ["XXI", "YZX", "IZX"]],
