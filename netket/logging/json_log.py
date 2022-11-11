@@ -169,7 +169,7 @@ class JsonLog(RuntimeLog):
         # Time how long flushing data takes.
         self._last_flush_time = time.time()
         if self._is_master_process:
-            self.serialize(self._prefix + ".log")
+            self.serialize(self._prefix + ".log.zst")
         self._last_flush_runtime = time.time() - self._last_flush_time
 
         self._flush_log_time += self._last_flush_runtime

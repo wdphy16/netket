@@ -18,6 +18,7 @@ from pathlib import Path
 import jax
 import numpy as np
 import orjson
+from zstandard import ZstdCompressor
 
 from netket.utils.history import accum_histories_in_tree, HistoryDict
 from netket.vqs import VariationalState
@@ -44,6 +45,7 @@ class RuntimeLog(AbstractLog):
         """
         self._data: dict[str, Any] = HistoryDict()
         self._old_step = 0
+        self._compressor = ZstdCompressor(write_checksum=True, threads=-1)
 
     def __call__(
         self,
@@ -87,14 +89,15 @@ class RuntimeLog(AbstractLog):
         if isinstance(path, Path):
             parent = path.parent
             filename = path.name
-            if not filename.endswith((".log", ".json")):
-                filename = filename + ".json"
+            if not filename.endswith(".zst"):
+                filename = filename + ".zst"
             path = parent / filename
 
-            with open(path, "wb") as io:
-                self._serialize(io)
+            with open(path, "wb") as io, self._compressor.stream_writer(io) as writer:
+                self._serialize(writer)
         else:
-            self._serialize(path)
+            with self._compressor.stream_writer(path) as writer:
+                self._serialize(writer)
 
     def _serialize(self, outstream: IO):
         r"""
