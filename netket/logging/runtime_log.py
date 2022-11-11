@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union, IO
-from pathlib import Path
+from os import PathLike
+from typing import IO
 
 import jax
 import numpy as np
 import orjson
+from zstandard import ZstdCompressor
 
 from netket.utils import accum_histories_in_tree
 
@@ -41,6 +42,7 @@ class RuntimeLog(AbstractLog):
         """
         self._data = None
         self._old_step = 0
+        self._compressor = ZstdCompressor(write_checksum=True, threads=-1)
 
     def __call__(self, step, item, variational_state=None):
         self._data = accum_histories_in_tree(self._data, item, step=step)
@@ -59,7 +61,7 @@ class RuntimeLog(AbstractLog):
     def flush(self, variational_state=None):
         pass
 
-    def serialize(self, path: Union[str, Path, IO]):
+    def serialize(self, path: PathLike):
         r"""
         Serialize the content of :py:attr:`~netket.logging.RuntimeLog.data` to a file.
 
@@ -68,20 +70,8 @@ class RuntimeLog(AbstractLog):
         Args:
             path: The path of the output file. It must be a valid path.
         """
-        if isinstance(path, str):
-            path = Path(path)
-
-        if isinstance(path, Path):
-            parent = path.parent
-            filename = path.name
-            if not filename.endswith((".log", ".json")):
-                filename = filename + ".json"
-            path = parent / filename
-
-            with open(path, "wb") as io:
-                self._serialize(io)
-        else:
-            self._serialize(path)
+        with open(path, "wb") as f, self._compressor.stream_writer(f) as writer:
+            self._serialize(writer)
 
     def _serialize(self, outstream: IO):
         r"""
