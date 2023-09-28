@@ -36,3 +36,5 @@ from . import spin, boson
 from netket.utils import _auto_export
 
 _auto_export(__name__)
+
+IsingJax = Ising
