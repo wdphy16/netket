@@ -45,7 +45,12 @@ def sparsify(Ô):
     """
     Converts to sparse but also cache the sparsificated result to speed up.
     """
-    return Ô.to_sparse()
+    O = Ô.to_sparse()
+    if isinstance(O, jax.experimental.sparse.BCOO):
+        O = jax.experimental.sparse.BCSR.from_bcoo(O)
+    else:
+        O = jax.experimental.sparse.BCSR.from_scipy_sparse(O)
+    return O
 
 
 @dispatch
@@ -57,12 +62,16 @@ def expect(vstate: FullSumState, Ô: DiscreteOperator) -> Stats:  # noqa: F811
 
     # TODO: This performs the full computation on all MPI ranks.
     # It would be great if we could split the computation among ranks.
+    _, expval_O, variance = _expect(O, Ψ)
+    return Stats(mean=expval_O, error_of_mean=0.0, variance=variance)
 
+
+@jax.jit
+def _expect(O: jnp.ndarray, Ψ: jnp.ndarray) -> tuple[jnp.ndarray, jnp.ndarray]:
     OΨ = O @ Ψ
     expval_O = (Ψ.conj() * OΨ).sum()
-
     variance = jnp.sum(jnp.abs(OΨ - expval_O * Ψ) ** 2)
-    return Stats(mean=expval_O, error_of_mean=0.0, variance=variance)
+    return OΨ, expval_O, variance
 
 
 @expect_and_grad.dispatch
@@ -106,7 +115,6 @@ def expect_and_forces_fullsum(
 
     O = sparsify(Ô)
     Ψ = vstate.to_array()
-    OΨ = O @ Ψ
 
     expval_O, Ō_grad, new_model_state = _exp_forces(
         vstate._apply_fun,
@@ -114,7 +122,7 @@ def expect_and_forces_fullsum(
         vstate.parameters,
         vstate.model_state,
         vstate._all_states,
-        OΨ,
+        O,
         Ψ,
     )
 
@@ -131,14 +139,12 @@ def _exp_forces(
     parameters: PyTree,
     model_state: PyTree,
     σ: jnp.ndarray,
-    OΨ: jnp.ndarray,
+    O: jnp.ndarray,
     Ψ: jnp.ndarray,
 ) -> tuple[PyTree, PyTree]:
     is_mutable = mutable is not False
 
-    expval_O = (Ψ.conj() * OΨ).sum()
-    variance = jnp.sum(jnp.abs(OΨ - expval_O * Ψ) ** 2)
-
+    OΨ, expval_O, variance = _expect(O, Ψ)
     ΔOΨ = (OΨ - expval_O * Ψ).conj() * Ψ
 
     _, vjp_fun, *new_model_state = nkjax.vjp(
