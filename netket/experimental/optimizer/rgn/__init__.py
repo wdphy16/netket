@@ -14,5 +14,5 @@
 
 from .model_and_operator_statistics import (
     centered_jacobian_and_mean,
-    en_grad_and_rhessian,
+    loss_grad_and_rhessian,
 )

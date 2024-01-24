@@ -20,7 +20,7 @@ from netket.jax import tree_cast
 from netket.experimental.optimizer import RGN
 from netket.experimental.optimizer.rgn import (
     centered_jacobian_and_mean,
-    en_grad_and_rhessian,
+    loss_grad_and_rhessian,
 )
 
 
@@ -56,7 +56,7 @@ class VMC_RGN(VMC):
             self.mode,
             self.chunk_size,
         )
-        self._loss_stats, self._loss_grad, rhessian = en_grad_and_rhessian(
+        self._loss_stats, self._loss_grad, rhessian = loss_grad_and_rhessian(
             forward_fn,
             self.state.parameters,
             self.state.samples,
@@ -73,7 +73,7 @@ class VMC_RGN(VMC):
             jac_mean=jac_mean,
             rhes=rhessian,
             grad=self._loss_grad,
-            energy=self._loss_stats.mean,
+            loss=self._loss_stats.mean,
             eps=eps,
             diag_shift=diag_shift,
             mode=self.mode,

@@ -287,7 +287,7 @@ def centered_jacobian_and_mean(
     return tree_subtract_mean(oks), tree_mean(oks)
 
 
-def en_and_rhessian_real_holo(
+def loss_and_rhessian_real_holo(
     forward_fn: Callable,
     params: PyTree,
     samples: Array,
@@ -295,7 +295,7 @@ def en_and_rhessian_real_holo(
     matrix_elements: Array,
     chunk_size: int = None,
 ) -> tuple[Array, PyTree]:
-    """Calculates the energy and one of the terms in the right hand side of the hessian
+    """Calculates the loss and one of the terms in the right hand side of the hessian
 
     Args:
         forward_fn: a function that generates the log wavefunction ln Ψ
@@ -308,7 +308,7 @@ def en_and_rhessian_real_holo(
         The Jacobian matrix ∂/∂pₖ ln Ψ(σⱼ) as a PyTree
     """
 
-    def _en_and_rhessian_real_holo(logpsi, params, σ, σp, mels):
+    def _loss_and_rhessian_real_holo(logpsi, params, σ, σp, mels):
         def E_loc(params):
             return jnp.sum(
                 mels
@@ -323,11 +323,13 @@ def en_and_rhessian_real_holo(
         return eloc, vjp_fun(np.array(1.0, dtype=jnp.result_type(eloc)))
 
     return vmap_chunked(
-        _en_and_rhessian_real_holo, in_axes=(None, None, 0, 0, 0), chunk_size=chunk_size
+        _loss_and_rhessian_real_holo,
+        in_axes=(None, None, 0, 0, 0),
+        chunk_size=chunk_size,
     )(forward_fn, params, samples, connected_samples, matrix_elements)
 
 
-def en_and_rhessian_cplx(
+def loss_and_rhessian_cplx(
     forward_fn: Callable,
     params: PyTree,
     samples: Array,
@@ -336,7 +338,7 @@ def en_and_rhessian_cplx(
     chunk_size: int = None,
     _build_fn: Callable = partial(jax.tree_multimap, jax.lax.complex),
 ) -> tuple[Array, PyTree]:
-    """Calculates the energy and one of the terms in the right hand side of the hessian
+    """Calculates the loss and one of the terms in the right hand side of the hessian
 
     Args:
         forward_fn: a function that generates the log wavefunction ln Ψ
@@ -349,7 +351,7 @@ def en_and_rhessian_cplx(
         The Jacobian matrix ∂/∂pₖ ln Ψ(σⱼ) as a PyTree
     """
 
-    def _en_and_rhessian_cplx(logpsi, params, σ, σp, mels):
+    def _loss_and_rhessian_cplx(logpsi, params, σ, σp, mels):
         def E_loc(params):
             return jnp.sum(
                 mels
@@ -370,11 +372,11 @@ def en_and_rhessian_cplx(
         )
 
     return vmap_chunked(
-        _en_and_rhessian_cplx, in_axes=(None, None, 0, 0, 0), chunk_size=chunk_size
+        _loss_and_rhessian_cplx, in_axes=(None, None, 0, 0, 0), chunk_size=chunk_size
     )(forward_fn, params, samples, connected_samples, matrix_elements)
 
 
-def en_grad_and_rhessian(
+def loss_grad_and_rhessian(
     forward_fn: Callable,
     params: PyTree,
     samples: Array,
@@ -400,11 +402,11 @@ def en_grad_and_rhessian(
         )
 
     if mode == "holomorphic" or mode == "real":
-        eloc, rhessian = en_and_rhessian_real_holo(
+        eloc, rhessian = loss_and_rhessian_real_holo(
             f, split_params, samples, connected_samples, matrix_elements, chunk_size
         )
     else:
-        eloc, rhessian = en_and_rhessian_cplx(
+        eloc, rhessian = loss_and_rhessian_cplx(
             f,
             split_params,
             samples,

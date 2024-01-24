@@ -41,10 +41,10 @@ class Hessian_Plus_QGT_PyTree(LinearOperator):
     """Right hand side of the hessian to compute the first term in the RGN expansion"""
 
     grad: PyTree = Uninitialized
-    """gradient of the energy with respect to the parameters"""
+    """gradient of the loss with respect to the parameters"""
 
-    energy: float = Uninitialized
-    """energy of the variational state"""
+    loss: float = Uninitialized
+    """loss of the variational state"""
 
     eps: float = Uninitialized
     """scale of the qgt contribution relative to the Hessian"""
@@ -121,7 +121,7 @@ def _matmul(
         vec, reassemble = nkjax.tree_to_real(vec)
 
     result = mat_vec(
-        vec, self.jac, self.rhes, self.jac_mean, self.eps, self.energy, self.diag_shift
+        vec, self.jac, self.rhes, self.jac_mean, self.eps, self.loss, self.diag_shift
     )
 
     # Reassemble real-imaginary split as needed
